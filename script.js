@@ -12,7 +12,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const confidenceFill = document.getElementById('confidence-fill');
     const confidenceValue = document.getElementById('confidence-value');
 
+    const sampleItems = document.querySelectorAll('.sample-item');
+
     const API_URL = 'http://localhost:5000/predict';
+
+    // Handle sample clicks
+    sampleItems.forEach(item => {
+        item.addEventListener('click', () => {
+            smsInput.value = item.getAttribute('data-text');
+            resultContainer.style.display = 'none';
+            smsInput.focus();
+        });
+    });
 
     checkBtn.addEventListener('click', async () => {
         const text = smsInput.value.trim();
@@ -70,29 +81,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const isSmishing = data.is_smishing;
         const confidence = data.confidence ? Math.round(data.confidence * 100) : 0;
 
+        // Reset colors to black for B&W theme
+        resultTitle.style.color = '#000000';
+        confidenceFill.style.backgroundColor = '#000000';
+
         if (isSmishing) {
-            resultBadge.textContent = 'High Risk detected';
-            resultBadge.className = 'badge badge-danger';
-            resultTitle.textContent = 'Smishing Attempt';
-            resultTitle.style.color = '#f87171';
+            resultBadge.textContent = 'HIGH RISK';
+            resultBadge.style.backgroundColor = '#000000';
+            resultBadge.style.color = '#ffffff';
+            resultTitle.textContent = 'Smishing Detected';
             resultDescription.textContent = 'This message contains patterns commonly used in phishing attacks, such as suspicious URLs, urgent language, or financial requests.';
-            confidenceFill.style.backgroundColor = '#ef4444';
         } else {
-            resultBadge.textContent = 'Seems Safe';
-            resultBadge.className = 'badge badge-legit';
+            resultBadge.textContent = 'SAFE';
+            resultBadge.style.backgroundColor = '#ffffff';
+            resultBadge.style.color = '#000000';
             resultTitle.textContent = 'Legitimate Message';
-            resultTitle.style.color = '#4ade80';
             resultDescription.textContent = 'Our AI did not find any strong indicators of social engineering. However, always remain cautious with unknown senders.';
-            confidenceFill.style.backgroundColor = '#22c55e';
         }
 
-        // Animate confidence bar
-        setTimeout(() => {
-            confidenceFill.style.width = `${confidence}%`;
-            confidenceValue.textContent = `${confidence}%`;
-        }, 100);
+        // Update confidence bar without animation
+        confidenceFill.style.width = `${confidence}%`;
+        confidenceValue.textContent = `${confidence}%`;
 
         // Scroll to results
-        resultContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        resultContainer.scrollIntoView({ behavior: 'auto', block: 'nearest' });
     }
 });

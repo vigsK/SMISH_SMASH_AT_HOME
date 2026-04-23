@@ -3,65 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmishSmash | Advanced Smishing Detector</title>
-    <meta name="description" content="AI-powered smishing detection to protect you from social engineering attacks.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <title>SmishSmash | Minimal Smishing Detector</title>
+    <meta name="description" content="Simple and minimal smishing detection interface.">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="background-blobs">
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
-        <div class="blob blob-3"></div>
-    </div>
-
     <main class="app-container">
         <header class="header">
             <div class="logo">
-                <span class="logo-icon">🛡️</span>
-                <h1>Smish<span class="highlight">Smash</span></h1>
+                <h1>SmishSmash</h1>
             </div>
-            <p class="subtitle">AI-Powered Social Engineering Detection</p>
+            <p class="subtitle">Social Engineering Detection Utility</p>
         </header>
 
         <section class="detector-section">
-            <div class="glass-card main-card">
+            <div class="main-card">
                 <div class="input-group">
-                    <label for="sms-input">Paste the suspicious message below:</label>
-                    <textarea id="sms-input" placeholder="e.g. URGENT: Your account has been suspended. Click here to verify..."></textarea>
+                    <label for="sms-input">INPUT MESSAGE</label>
+                    <textarea id="sms-input" placeholder="Paste text here to analyze..."></textarea>
                 </div>
                 
                 <button id="check-btn" class="primary-btn">
-                    <span class="btn-text">Analyze Message</span>
+                    <span class="btn-text">Analyze</span>
                     <div class="loader-dots" style="display: none;">
                         <span></span><span></span><span></span>
                     </div>
                 </button>
             </div>
 
+            <!-- Samples Section -->
+            <div class="samples-section">
+                <h3>Try a sample</h3>
+                <div class="samples-grid">
+                    <div class="sample-column">
+                        <h4>Phishing Examples</h4>
+                        <ul class="sample-list">
+                            <li class="sample-item" data-text="URGENT: Your bank account has been compromised. Click here to secure it: http://bit.ly/fake-bank-login">Bank Security Alert</li>
+                            <li class="sample-item" data-text="Congratulations! You've won a $1,000 Amazon Gift Card. Claim yours now: http://amazon-gift-rewards.com">Gift Card Winner</li>
+                            <li class="sample-item" data-text="Netflix: Your payment was declined. Please update your billing info to avoid service interruption: http://netflix-update.me">Payment Declined</li>
+                            <li class="sample-item" data-text="Apple ID: Security Alert. Your account was accessed from a new device. Sign in here: http://apple-security.co">Apple ID Alert</li>
+                            <li class="sample-item" data-text="IRS: You are eligible for a tax refund of $450. Complete the form to receive it: http://irs-refund-gov.com">Tax Refund</li>
+                        </ul>
+                    </div>
+                    <div class="sample-column">
+                        <h4>Normal Examples</h4>
+                        <ul class="sample-list">
+                            <li class="sample-item" data-text="Hey, are we still meeting for lunch at 12:30?">Lunch Meeting</li>
+                            <li class="sample-item" data-text="Your grocery order is ready for pickup at the store.">Grocery Pickup</li>
+                            <li class="sample-item" data-text="The meeting has been rescheduled to tomorrow at 10 AM.">Meeting Update</li>
+                            <li class="sample-item" data-text="Don't forget to bring the documents for the signing today.">Document Reminder</li>
+                            <li class="sample-item" data-text="Just checking in to see how your weekend was!">Weekend Check-in</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
             <div id="result-container" class="result-container" style="display: none;">
-                <div class="glass-card result-card">
+                <div class="result-card">
                     <div id="result-badge" class="badge"></div>
                     <h2 id="result-title">Analyzing...</h2>
                     <p id="result-description"></p>
                     
                     <div id="confidence-bar-container" class="confidence-container">
-                        <div class="confidence-label">Confidence Score</div>
+                        <div class="confidence-label">Confidence</div>
                         <div class="progress-track">
                             <div id="confidence-fill" class="progress-fill"></div>
                         </div>
                         <div id="confidence-value" class="confidence-value">0%</div>
                     </div>
 
-                    <button id="reset-btn" class="secondary-btn">Check Another</button>
+                    <button id="reset-btn" class="secondary-btn">CLEAR</button>
                 </div>
             </div>
         </section>
 
         <footer class="footer">
-            <p>&copy; 2024 SmishSmash Detector. Built with Scikit-Learn & Flask.</p>
+            <p>&copy; 2024 SMISHSMASH. BLACK & WHITE EDITION.</p>
         </footer>
     </main>
 
