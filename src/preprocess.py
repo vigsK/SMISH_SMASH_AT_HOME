@@ -93,7 +93,7 @@ def load_sms(path: Path | str | None = None) -> pd.DataFrame:
 
     if not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
-        print(f"[preprocess] Downloading SMS Spam Collection → {path}")
+        print(f"[preprocess] Downloading SMS Spam Collection -> {path}")
         resp = requests.get(_DATA_URL, timeout=60)
         resp.raise_for_status()
         with zipfile.ZipFile(io.BytesIO(resp.content)) as zf:

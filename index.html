@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmishSmash | Advanced Smishing Detector</title>
+    <meta name="description" content="AI-powered smishing detection to protect you from social engineering attacks.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <main class="app-container">
+        <header class="header">
+            <div class="logo">
+                <span class="logo-icon">🛡️</span>
+                <h1>Smish<span class="highlight">Smash</span></h1>
+            </div>
+            <p class="subtitle">AI-Powered Social Engineering Detection</p>
+        </header>
+
+        <section class="detector-section">
+            <div class="glass-card main-card">
+                <div class="input-group">
+                    <label for="sms-input">Paste the suspicious message below:</label>
+                    <textarea id="sms-input" placeholder="e.g. URGENT: Your account has been suspended. Click here to verify..."></textarea>
+                </div>
+                
+                <button id="check-btn" class="primary-btn">
+                    <span class="btn-text">Analyze Message</span>
+                    <div class="loader-dots" style="display: none;">
+                        <span></span><span></span><span></span>
+                    </div>
+                </button>
+            </div>
+
+            <div id="result-container" class="result-container" style="display: none;">
+                <div class="glass-card result-card">
+                    <div id="result-badge" class="badge"></div>
+                    <h2 id="result-title">Analyzing...</h2>
+                    <p id="result-description"></p>
+                    
+                    <div id="confidence-bar-container" class="confidence-container">
+                        <div class="confidence-label">Confidence Score</div>
+                        <div class="progress-track">
+                            <div id="confidence-fill" class="progress-fill"></div>
+                        </div>
+                        <div id="confidence-value" class="confidence-value">0%</div>
+                    </div>
+
+                    <button id="reset-btn" class="secondary-btn">Check Another</button>
+                </div>
+            </div>
+        </section>
+
+        <footer class="footer">
+            <p>&copy; 2024 SmishSmash Detector. Built with Scikit-Learn & Flask.</p>
+        </footer>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
