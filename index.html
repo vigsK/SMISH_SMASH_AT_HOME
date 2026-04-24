@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmishSmash | Explainable Smishing Detector</title>
+    <meta name="description" content="Hybrid TF-IDF + rule-based smishing detector with live, explainable predictions.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=15">
+</head>
+<body>
+    <div id="vanta-dots" aria-hidden="true"></div>
+    <div class="scanlines" aria-hidden="true"></div>
+    <div class="cursor-glow" aria-hidden="true"></div>
+
+    <main class="app-container">
+        <header class="header">
+            <div class="sys-line">
+                <span class="sys-dot"></span>
+                <span>SYS // SMISH-DETECT</span>
+                <span class="sys-sep">·</span>
+                <span>NODE 01</span>
+                <span class="sys-sep">·</span>
+                <span class="sys-live">LIVE</span>
+            </div>
+            <div class="logo">
+                <span class="logo-mark">[ / ]</span>
+                <h1>smish<span class="highlight">_smash</span></h1>
+            </div>
+            <p class="subtitle">
+</p>
+        </header>
+
+        <section class="detector-section">
+            <div class="glass-card main-card">
+                <div class="input-group">
+                    <label for="sms-input">Paste a suspicious message:</label>
+                    <textarea id="sms-input" placeholder="e.g. URGENT: Your account has been suspended. Click http://amaz0n-reward.tk/claim to verify now..."></textarea>
+                </div>
+
+                <div class="samples-panel">
+                    <div class="samples-header">
+                        <span class="samples-label">// sample inputs</span>
+                        <span class="samples-count" id="samples-count"></span>
+                    </div>
+                    <div class="samples-controls">
+                        <select id="sample-select">
+                            <option value="" disabled selected>— select a sample message —</option>
+
+                            <optgroup label="Classic Smishing">
+                                <option value="smish_amazon">Amazon prize + URL + urgency</option>
+                                <option value="smish_bank_kyc">Bank KYC suspension alert</option>
+                                <option value="smish_fedex">FedEx redelivery fee + link</option>
+                                <option value="smish_irs">IRS tax refund claim</option>
+                                <option value="smish_paypal">PayPal unauthorized charge</option>
+                                <option value="smish_netflix">Netflix billing suspension</option>
+                            </optgroup>
+
+                            <optgroup label="False Negatives — model likely misses">
+                                <option value="fn_gift_cards">Gift-card pretexting (no URL, no $)</option>
+                                <option value="fn_ceo_fraud">CEO wire transfer request</option>
+                                <option value="fn_wrong_number">Wrong-number → crypto romance</option>
+                                <option value="fn_charity">Earthquake relief donation scam</option>
+                                <option value="fn_landlord">Landlord new bank details</option>
+                                <option value="fn_ssa_callback">SSA suspension → callback number</option>
+                            </optgroup>
+
+                            <optgroup label="False Positives — ham that fires signals">
+                                <option value="fp_mum_transfer">Family transfer request (mum)</option>
+                                <option value="fp_dinner_bill">Friend splitting dinner bill</option>
+                                <option value="fp_real_otp">Real bank OTP message</option>
+                                <option value="fp_doctor">Doctor appointment with portal link</option>
+                                <option value="fp_school_alert">School early-dismissal alert + link</option>
+                                <option value="fp_boss_call">Boss asking for urgent call</option>
+                            </optgroup>
+
+                            <optgroup label="Tricky / Borderline">
+                                <option value="tricky_parcel">Parcel tracking via short-link</option>
+                                <option value="tricky_spotify">Spotify subscription expiry notice</option>
+                                <option value="tricky_recruiter">LinkedIn recruiter (Goldman Sachs)</option>
+                                <option value="tricky_survey">Survey + Amazon voucher offer</option>
+                                <option value="tricky_friend_shortlink">Friend sharing playlist via bit.ly</option>
+                                <option value="tricky_bank_real">Legitimate bank fraud alert</option>
+                            </optgroup>
+
+                            <optgroup label="Clearly Benign">
+                                <option value="ham_study">Study session invite</option>
+                                <option value="ham_flight">British Airways flight update</option>
+                                <option value="ham_library">Library book due reminder</option>
+                                <option value="ham_hike">Weekend hiking plans</option>
+                                <option value="ham_dentist">Dentist appointment confirmation</option>
+                            </optgroup>
+                        </select>
+                        <button id="load-sample-btn" class="sample-load-btn" disabled>
+                            load &amp; analyze
+                        </button>
+                    </div>
+                    <div id="sample-preview" class="sample-preview" style="display:none;"></div>
+                </div>
+
+                <button id="check-btn" class="primary-btn">
+                    <span class="btn-text">Analyze message</span>
+                    <div class="loader-dots" style="display: none;">
+                        <span></span><span></span><span></span>
+                    </div>
+                </button>
+            </div>
+
+            <div id="result-container" class="result-container" style="display: none;">
+                <div class="glass-card result-card">
+                    <div class="result-header">
+                        <div id="result-badge" class="badge"></div>
+                        <h2 id="result-title">Analyzing…</h2>
+                        <p id="result-prediction-line" class="prediction-line"></p>
+                    </div>
+
+                    <div class="confidence-container">
+                        <div class="confidence-row">
+                            <span class="confidence-label">Confidence</span>
+                            <span id="confidence-value" class="confidence-value">0%</span>
+                        </div>
+                        <div class="progress-track">
+                            <div id="confidence-fill" class="progress-fill"></div>
+                        </div>
+                        <div class="confidence-row sub">
+                            <span class="confidence-label">Heuristic score (rule branch)</span>
+                            <span id="heuristic-value" class="confidence-value muted">0%</span>
+                        </div>
+                        <div class="progress-track thin">
+                            <div id="heuristic-fill" class="progress-fill heuristic"></div>
+                        </div>
+                    </div>
+
+                    <div class="block">
+                        <div class="block-label">Highlighted message</div>
+                        <div id="highlighted-text" class="highlighted-text"></div>
+                        <div class="legend">
+                            <span class="chip url">URL</span>
+                            <span class="chip short_link">short link</span>
+                            <span class="chip phone">phone</span>
+                            <span class="chip money">money</span>
+                            <span class="chip urgency">urgency</span>
+                            <span class="chip action">action</span>
+                            <span class="chip keyword">keyword</span>
+                            <span class="chip email">email</span>
+                            <span class="chip leet">leet</span>
+                        </div>
+                    </div>
+
+                    <div class="block">
+                        <div class="block-label">Top reasons</div>
+                        <ul id="reasons-list" class="reasons-list"></ul>
+                    </div>
+
+                    <details class="block rule-block">
+                        <summary>Rule flags (Jain &amp; Gupta, 2018)</summary>
+                        <div id="rule-flags" class="rule-flags"></div>
+                    </details>
+
+                    <button id="reset-btn" class="secondary-btn">Check another</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="glass-card honesty-card">
+            <h3>Where the model still gets it wrong</h3>
+            <p class="muted">To compare our results with CHAR-CNN , we have included edge cases where the model gets wrong in classifying the message.</p>
+            <div class="failure-grid">
+                <div class="failure-item">
+                    <div class="failure-tag tag-fp">False positive</div>
+                    <p class="failure-msg">Hi mum, urgent — can you transfer £20 to my account today? Bank app is down so I can't move it myself.</p>
+                    <p class="failure-explain">Looks like smishing on paper (urgency + currency + bank + account) but it's a real family text. The rule branch overweights surface signals.</p>
+                    <button class="link-btn" data-example="false_positive">Run this</button>
+                </div>
+                <div class="failure-item">
+                    <div class="failure-tag tag-fn">False negative</div>
+                    <p class="failure-msg">hey it's mike from the office — got a sec? need you to grab a couple of gift cards for the client meeting, ill pay you back at lunch</p>
+                    <p class="failure-explain">No URL, no money symbol, no obvious keyword — just impersonation + gift-card pretexting. Surface heuristics miss it.</p>
+                    <button class="link-btn" data-example="hard_smish">Run this</button>
+                </div>
+            </div>
+        </section>
+
+        <footer class="footer">
+            <p>SmishSmash · word TF-IDF + char TF-IDF + heuristic score + 9 rule flags · Flask + scikit-learn</p>
+        </footer>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="vanta.dots.min.js"></script>
+    <script src="script.js"></script>
+    <script>
+      // Vanta DOTS background — cold cyan, transparent so the map shows through
+      (() => {
+        if (!window.VANTA || !window.VANTA.DOTS) return;
+        window.VANTA.DOTS({
+          el: "#vanta-dots",
+          mouseControls: true,
+          touchControls: true,
+          gyroControls: false,
+          minHeight: 200.0,
+          minWidth: 200.0,
+          scale: 1.0,
+          scaleMobile: 1.0,
+          color: 0x5eead4,
+          color2: 0x2dd4bf,
+          backgroundColor: 0x05080c,
+          backgroundAlpha: 0,
+          size: 3.2,
+          spacing: 32,
+          showLines: true,
+        });
+      })();
+    </script>
+    <script>
+      // Mouse-tracking radial glow — cold cyan, soft, follows cursor with easing
+      (() => {
+        const glow = document.querySelector('.cursor-glow');
+        if (!glow) return;
+        let tx = window.innerWidth / 2, ty = window.innerHeight / 2;
+        let cx = tx, cy = ty;
+        let raf = null;
+
+        window.addEventListener('pointermove', (e) => {
+          tx = e.clientX;
+          ty = e.clientY;
+          if (!raf) raf = requestAnimationFrame(tick);
+        }, { passive: true });
+
+        function tick() {
+          cx += (tx - cx) * 0.18;
+          cy += (ty - cy) * 0.18;
+          glow.style.setProperty('--mx', cx + 'px');
+          glow.style.setProperty('--my', cy + 'px');
+          if (Math.abs(tx - cx) > 0.5 || Math.abs(ty - cy) > 0.5) {
+            raf = requestAnimationFrame(tick);
+          } else {
+            raf = null;
+          }
+        }
+        tick();
+
+        document.addEventListener('pointerleave', () => {
+          glow.style.opacity = '0';
+        });
+        document.addEventListener('pointerenter', () => {
+          glow.style.opacity = '';
+        });
+      })();
+    </script>
+</body>
+</html>

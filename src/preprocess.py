@@ -77,41 +77,86 @@ _DEFAULT_PATH = Path(__file__).parent.parent / "data" / "SMSSpamCollection"
 
 
 def load_sms(path: Path | str | None = None) -> pd.DataFrame:
-    """Load the UCI SMS Spam Collection into a DataFrame.
+    """Load the SMS spam dataset, combining UCI with a HuggingFace supplement.
 
-    If the file at *path* (default: ``data/SMSSpamCollection``) does not exist,
-    it is downloaded and extracted automatically from the UCI ML Repository.
+    Primary source: UCI SMS Spam Collection (5 574 messages, auto-downloaded).
+    Supplementary : ``Deysi/spam-detection-dataset`` via the ``datasets``
+                    library (~5 000 additional rows).  Falls back silently if
+                    the package is missing or the dataset is unavailable.
 
     Returns
     -------
     pd.DataFrame
         Columns: ``label`` (str, 'ham'/'spam'), ``text`` (str), ``y`` (int, 1=spam).
-
-    Paper echo: dataset used across all three reference papers.
     """
     path = Path(path) if path else _DEFAULT_PATH
 
+    # --- Primary: UCI SMS Spam Collection ---
     if not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
-        print(f"[preprocess] Downloading SMS Spam Collection → {path}")
+        print(f"[preprocess] Downloading SMS Spam Collection -> {path}")
         resp = requests.get(_DATA_URL, timeout=60)
         resp.raise_for_status()
         with zipfile.ZipFile(io.BytesIO(resp.content)) as zf:
-            # The zip contains 'SMSSpamCollection' (no extension) among others
             name = next(n for n in zf.namelist() if "SMSSpamCollection" in n and not n.endswith("/"))
             with zf.open(name) as src, open(path, "wb") as dst:
                 dst.write(src.read())
         print(f"[preprocess] Saved {path.stat().st_size // 1024} KB")
 
-    df = pd.read_csv(
-        path,
-        sep="\t",
-        header=None,
-        names=["label", "text"],
-        encoding="latin-1",
-    )
+    df = pd.read_csv(path, sep="\t", header=None, names=["label", "text"], encoding="latin-1")
     df["y"] = (df["label"] == "spam").astype(int)
+    print(f"[preprocess] UCI: {len(df)} messages (spam: {df['y'].sum()}, ham: {(df['y']==0).sum()})")
+
+    # --- Supplementary: HuggingFace SMS spam dataset ---
+    df2 = _load_supplementary()
+    if df2 is not None:
+        df = pd.concat([df, df2], ignore_index=True).drop_duplicates(subset="text").reset_index(drop=True)
+        print(f"[preprocess] Combined: {len(df)} messages (spam: {df['y'].sum()}, ham: {(df['y']==0).sum()})")
+
     return df
+
+
+def _load_supplementary() -> "pd.DataFrame | None":
+    """Try to load ``Deysi/spam-detection-dataset`` from HuggingFace.
+
+    Returns a DataFrame with columns [label, text, y] on success, else None.
+    Column names are detected dynamically so minor schema changes are tolerated.
+    """
+    try:
+        from datasets import load_dataset  # optional dependency
+    except ImportError:
+        print("[preprocess] 'datasets' package not installed — using UCI only (pip install datasets)")
+        return None
+
+    try:
+        ds = load_dataset("Deysi/spam-detection-dataset", split="train", trust_remote_code=True)
+        cols = ds.column_names
+
+        # Detect text column (prefer 'sms', fall back to 'text' or 'message')
+        text_col = next((c for c in ("sms", "text", "message") if c in cols), None)
+        # Detect label column (prefer 'label', fall back to 'spam')
+        label_col = next((c for c in ("label", "spam", "y") if c in cols), None)
+
+        if text_col is None or label_col is None:
+            print(f"[preprocess] Unexpected schema in supplementary dataset: {cols} — skipping")
+            return None
+
+        raw_labels = ds[label_col]
+        # Normalise to int: accept 0/1 ints or 'ham'/'spam' strings
+        if isinstance(raw_labels[0], str):
+            y_vals = [1 if v.strip().lower() == "spam" else 0 for v in raw_labels]
+        else:
+            y_vals = [int(v) for v in raw_labels]
+
+        df2 = pd.DataFrame({"text": ds[text_col], "y": y_vals})
+        df2["label"] = df2["y"].map({1: "spam", 0: "ham"})
+        df2 = df2[["label", "text", "y"]].dropna(subset=["text"])
+        print(f"[preprocess] Supplementary: {len(df2)} messages loaded")
+        return df2
+
+    except Exception as exc:
+        print(f"[preprocess] Supplementary dataset unavailable ({exc}) — using UCI only")
+        return None
 
 
 # ---------------------------------------------------------------------------

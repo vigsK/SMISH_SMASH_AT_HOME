@@ -40,7 +40,12 @@ ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
 from src.preprocess import load_sms, clean_text
-from src.features import build_tfidf, compose_features, RuleBasedClassifier
+from src.features import (
+    build_tfidf,
+    build_char_tfidf,
+    compose_features,
+    RuleBasedClassifier,
+)
 
 MODELS_DIR = ROOT / "models"
 MODELS_DIR.mkdir(exist_ok=True)
@@ -168,15 +173,19 @@ def train():
         stratify=df["y"],
     )
 
-    # 4. Fit TF-IDF on train clean text
-    print("[train] Fitting TF-IDF …")
+    # 4. Fit word + char TF-IDF on training split only
+    print("[train] Fitting word TF-IDF …")
     tfidf = build_tfidf()
     tfidf.fit(X_cl_tr)
 
+    print("[train] Fitting char TF-IDF …")
+    char_tfidf = build_char_tfidf()
+    char_tfidf.fit(X_raw_tr)
+
     # 5. Compose feature matrices
     print("[train] Composing features …")
-    X_train = compose_features(X_raw_tr, X_cl_tr, tfidf)
-    X_test  = compose_features(X_raw_te, X_cl_te, tfidf)
+    X_train = compose_features(X_raw_tr, X_cl_tr, tfidf, char_tfidf)
+    X_test  = compose_features(X_raw_te, X_cl_te, tfidf, char_tfidf)
     print(f"[train] Feature matrix shape: {X_train.shape}")
 
     # 6. Train & evaluate
@@ -209,8 +218,9 @@ def train():
     _plot_confusion(best_clf, X_test, y_te, best_name, ROOT / "models" / "fig4_cm.png")
 
     # 8. Persist
-    joblib.dump(best_clf, MODELS_DIR / "best_classifier.pkl")
-    joblib.dump(tfidf,    MODELS_DIR / "tfidf.pkl")
+    joblib.dump(best_clf,   MODELS_DIR / "best_classifier.pkl")
+    joblib.dump(tfidf,      MODELS_DIR / "tfidf.pkl")
+    joblib.dump(char_tfidf, MODELS_DIR / "tfidf_char.pkl")
     print(f"[train] Saved models to {MODELS_DIR}")
     print(f"[train] Total time: {time.time()-t0:.1f}s")
 

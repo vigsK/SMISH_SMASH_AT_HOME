@@ -146,15 +146,10 @@ def heuristic_score_batch(rule_matrix: np.ndarray) -> np.ndarray:
 # ---------------------------------------------------------------------------
 
 def build_tfidf() -> TfidfVectorizer:
-    """Create the TF-IDF vectorizer with project-standard hyperparameters.
+    """Create the word-level TF-IDF vectorizer.
 
     Settings follow Seo et al. (2024): unigram + bigram, sublinear TF,
     vocabulary pruned to top-5000 features.
-
-    Returns
-    -------
-    sklearn.feature_extraction.text.TfidfVectorizer
-        Unfitted vectorizer instance.
     """
     return TfidfVectorizer(
         ngram_range=(1, 2),
@@ -162,6 +157,25 @@ def build_tfidf() -> TfidfVectorizer:
         max_df=0.95,
         max_features=5000,
         sublinear_tf=True,
+    )
+
+
+def build_char_tfidf() -> TfidfVectorizer:
+    """Create the character-level TF-IDF vectorizer.
+
+    Char n-grams capture obfuscated tokens, leet-speak, and short-link
+    fragments that survive aggressive normalization. ``analyzer='char_wb'``
+    only generates n-grams within word boundaries, which keeps the matrix
+    smaller without losing meaningful sub-word structure.
+    """
+    return TfidfVectorizer(
+        analyzer="char_wb",
+        ngram_range=(3, 5),
+        min_df=2,
+        max_df=0.95,
+        max_features=3000,
+        sublinear_tf=True,
+        lowercase=True,
     )
 
 
@@ -173,33 +187,28 @@ def compose_features(
     raw_msgs,
     clean_msgs,
     tfidf: TfidfVectorizer,
+    char_tfidf: TfidfVectorizer | None = None,
 ) -> sp.csr_matrix:
-    """Horizontally stack TF-IDF, rule flags, and heuristic score.
+    """Horizontally stack word TF-IDF, char TF-IDF, rule flags, heuristic score.
 
-    Column layout: [tfidf (5000) | rule_flags (9) | heuristic_score (1)]
+    Column layout:
+        [word_tfidf (5000) | char_tfidf (≤3000) | rule_flags (9) | score (1)]
 
-    Parameters
-    ----------
-    raw_msgs : list or pd.Series
-        Original unprocessed SMS texts (used for rule/score branches).
-    clean_msgs : list or pd.Series
-        Cleaned/lemmatized texts (used for TF-IDF branch).
-    tfidf : TfidfVectorizer
-        A *fitted* TfidfVectorizer instance.
-
-    Returns
-    -------
-    scipy.sparse.csr_matrix
-        Shape (n_samples, n_tfidf + 10).
+    The ``char_tfidf`` argument is optional for backwards compatibility — if
+    omitted, the function falls back to the original 3-branch composition.
     """
-    tfidf_mat  = tfidf.transform(clean_msgs)                  # sparse (n, 5000)
-    rule_mat   = rule_features_batch(raw_msgs)                 # dense  (n, 9)
-    score_mat  = heuristic_score_batch(rule_mat)               # dense  (n, 1)
+    word_mat  = tfidf.transform(clean_msgs)
+    rule_mat  = rule_features_batch(raw_msgs)
+    score_mat = heuristic_score_batch(rule_mat)
 
-    return sp.hstack(
-        [tfidf_mat, sp.csr_matrix(rule_mat), sp.csr_matrix(score_mat)],
-        format="csr",
-    )
+    blocks = [word_mat]
+    if char_tfidf is not None:
+        char_mat = char_tfidf.transform(raw_msgs)
+        blocks.append(char_mat)
+    blocks.append(sp.csr_matrix(rule_mat))
+    blocks.append(sp.csr_matrix(score_mat))
+
+    return sp.hstack(blocks, format="csr")
 
 
 # ---------------------------------------------------------------------------

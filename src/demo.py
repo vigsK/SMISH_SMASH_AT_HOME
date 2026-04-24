@@ -63,15 +63,15 @@ def run_demo():
 
     clean_msgs = [clean_text(m) for m in SAMPLES]
 
-    X = compose_features(raw_msgs, clean_msgs, tfidf)
+    X = compose_features(SAMPLES, clean_msgs, tfidf)
     preds = clf.predict(X)
 
     print("\n" + "=" * 70)
     print("DEMO INFERENCE RESULTS")
     print("=" * 70)
-    for msg, pred in zip(raw_msgs, preds):
+    for msg, pred in zip(SAMPLES, preds):
         label   = "SMISHING" if pred == 1 else "HAM"
-        preview = msg[:80] + ("…" if len(msg) > 80 else "")
+        preview = msg[:80] + ("..." if len(msg) > 80 else "")
         print(f"[{label:<8}]  {preview}")
     print("=" * 70 + "\n")
 
